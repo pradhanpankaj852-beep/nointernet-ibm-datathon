@@ -1,4 +1,4 @@
-# Team NoInternet_IBM Z Datathon 2026 Project: NoInternet
+# Failed_IBM Z Datathon 2026 Project: NoInternet
 
 > **Decentralized P2P field disaster mesh client communicating with an IBM LinuxONE s390x emergency AI triage engine.**
 
