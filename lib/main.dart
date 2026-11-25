@@ -17,7 +17,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
-    title: "NoInternet Disaster Mesh",
+    title: "FieldLink",
     home: ModernMeshHome(),
   ));
 }
@@ -567,14 +567,12 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
   Map<String, String> connectedPeers = {};
   final Set<String> _seenMessageIds = {};
 
-  // ZERO-STORAGE RAM-ONLY DATA ARRAYS (0 KB persistent disk storage)
+  // SOS reports remain in memory until they can be sent to the service.
   final List<ChatMessage> chatList = [];
   final List<DistressPacket> _distressBuffer = [];
 
-  // Configurable IBM LinuxONE Backend Gateway Endpoint
-  static const String linuxOneIngressUrl =
-      "http://148.100.109.183:8000/api/triage/stream";
-  String _ibmGatewayUrl = linuxOneIngressUrl;
+  // Configurable triage service endpoint
+  String _triageServiceUrl = "http://localhost:8000/api/triage/stream";
 
   // Simulated Field GPS Coordinates near Disaster Operations Base
   double _currentSimulatedLat = 40.7128;
@@ -1343,7 +1341,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
       } catch (_) {}
     }
 
-    // Opportunistically forward distress alert directly to IBM LinuxONE instance if reachable
+    // Forward distress alerts to the configured triage service when reachable.
     _forwardSosToLinuxOneGateway(packet);
 
     if (mounted) {
@@ -1366,7 +1364,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 3);
       final stopwatch = Stopwatch()..start();
-      final request = await client.postUrl(Uri.parse(_ibmGatewayUrl));
+      final request = await client.postUrl(Uri.parse(_triageServiceUrl));
       request.headers.set('content-type', 'application/json');
 
       final payload = {
@@ -1398,10 +1396,10 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
           setState(() {});
           final priorityLevel = triage?['priority_level'] ?? packet.priority;
           final category = triage?['category'] ?? "General";
-          final processedBy = triage?['processed_by'] ?? "IBM LinuxONE s390x";
+          final processedBy = triage?['processed_by'] ?? "FieldLink Triage Service";
 
           debugPrint("================ [FLUTTER DEBUG CONSOLE] ================");
-          debugPrint("🚀 Ingress Forwarded to IBM LinuxONE s390x");
+          debugPrint("SOS report forwarded to the triage service");
           debugPrint("HTTP Response: $respBody");
           debugPrint('Triage Result: "status": "success", "priority_level": $priorityLevel, "category": "$category"');
           debugPrint("Latency: ${stopwatch.elapsedMilliseconds}ms | Engine: $processedBy");
@@ -1410,7 +1408,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                "⚡ LinuxONE s390x Triage: $category (P$priorityLevel) scored in ${stopwatch.elapsedMilliseconds}ms on $processedBy",
+                "Triage: $category (P$priorityLevel) in ${stopwatch.elapsedMilliseconds}ms on $processedBy",
               ),
               backgroundColor: const Color(0xFF059669),
               behavior: SnackBarBehavior.floating,
@@ -1420,7 +1418,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
         }
       }
     } catch (e) {
-      debugPrint("Opportunistic LinuxONE forward queued for satellite/gateway sync: $e");
+      debugPrint("Triage service unavailable; report queued for later sync: $e");
     }
   }
 
@@ -1428,7 +1426,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
 
   void _showGatewaySyncDialog() {
     _dismissKeyboard();
-    final urlController = TextEditingController(text: _ibmGatewayUrl);
+    final urlController = TextEditingController(text: _triageServiceUrl);
     bool isSyncing = false;
     String? syncResult;
 
@@ -1449,7 +1447,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                 Icon(Icons.cloud_sync_rounded, color: Color(0xFF38BDF8), size: 24),
                 SizedBox(width: 10),
                 Text(
-                  "IBM LinuxONE Gateway",
+                  "Triage service",
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -1463,7 +1461,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Opportunistic Cloud Gateway Uplink Simulation",
+                    "Optional report processing",
                     style: TextStyle(
                         color: Color(0xFF94A3B8),
                         fontSize: 11,
@@ -1471,7 +1469,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Simulates an edge node reaching an emergency relief vehicle or satellite hotspot to ingest in-memory distress packets into the centralized IBM LinuxONE triage engine.",
+                    "Send buffered SOS reports to a triage service when a network connection is available.",
                     style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 12,
@@ -1563,15 +1561,28 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        color: (syncResult!.startsWith("Unable") ||
+                                    syncResult!.startsWith("Triage service returned")
+                                ? const Color(0xFFEF4444)
+                                : const Color(0xFF10B981))
+                            .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                            color: (syncResult!.startsWith("Unable") ||
+                                        syncResult!.startsWith(
+                                            "Triage service returned")
+                                    ? const Color(0xFFEF4444)
+                                    : const Color(0xFF10B981))
+                                .withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         syncResult!,
-                        style: const TextStyle(
-                            color: Color(0xFF34D399),
+                        style: TextStyle(
+                            color: syncResult!.startsWith("Unable") ||
+                                    syncResult!.startsWith(
+                                        "Triage service returned")
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFF34D399),
                             fontSize: 11,
                             fontWeight: FontWeight.w600),
                       ),
@@ -1596,7 +1607,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                     ? null
                     : () async {
                         setDialogState(() => isSyncing = true);
-                        _ibmGatewayUrl = urlController.text.trim();
+                        _triageServiceUrl = urlController.text.trim();
 
                         final resultMsg = await _performGatewaySync();
                         if (mounted) {
@@ -1644,7 +1655,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 4);
       final stopwatch = Stopwatch()..start();
-      final request = await client.postUrl(Uri.parse(_ibmGatewayUrl));
+      final request = await client.postUrl(Uri.parse(_triageServiceUrl));
       request.headers.set('content-type', 'application/json');
       request.add(utf8.encode(jsonBody));
       final response = await request.close();
@@ -1654,11 +1665,11 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
         final respStr = await utf8.decodeStream(response);
         final Map<String, dynamic> respJson = jsonDecode(respStr);
         final triage = respJson['triage'] as Map<String, dynamic>?;
-        final processedBy = triage?['processed_by'] ?? "IBM LinuxONE s390x";
+        final processedBy = triage?['processed_by'] ?? "FieldLink Triage Service";
         final qLen = respJson['current_queue_length'] ?? payloadList.length;
 
         debugPrint("================ [FLUTTER DEBUG CONSOLE] ================");
-        debugPrint("🚀 Opportunistic Gateway Sync to IBM LinuxONE s390x");
+        debugPrint("SOS reports synced to the triage service");
         debugPrint("HTTP Response: $respStr");
         debugPrint('Triage Result: "status": "success", "queue_length": $qLen');
         debugPrint("Latency: ${stopwatch.elapsedMilliseconds}ms | Engine: $processedBy");
@@ -1668,15 +1679,13 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
         statusNote =
             "HTTP 200 OK (${stopwatch.elapsedMilliseconds}ms)\nIngested into $processedBy\nActive Triage Queue: $qLen items";
       } else {
-        isSuccess = true;
+        await response.drain<void>();
         statusNote =
-            "Satellite Gateway Uplink Simulated (HTTP ${response.statusCode})";
+            "Triage service returned HTTP ${response.statusCode}. Reports remain queued for retry.";
       }
     } catch (e) {
-      // In field disaster deployments without WAN, fallback edge satellite simulation succeeds
-      isSuccess = true;
       statusNote =
-          "Satellite Uplink Relay: ${payloadList.length} Packets buffered for LinuxONE relay ($e)";
+          "Unable to reach the triage service. Reports remain queued for retry: $e";
     }
 
     if (isSuccess) {
@@ -1963,7 +1972,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  "NoInternet Disaster Mesh",
+                                  "FieldLink",
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
@@ -1973,9 +1982,9 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                                 Row(
                                   children: [
                                     const Text(
-                                      "FIELD DISASTER CLIENT",
+                                      "OFFLINE MESSAGING",
                                       style: TextStyle(
-                                          color: Color(0xFFEF4444),
+                                          color: Color(0xFF38BDF8),
                                           fontSize: 8.5,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 1.1),
@@ -2006,7 +2015,7 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                                           ? const Color(0xFFFBBF24)
                                           : const Color(0xFF38BDF8),
                                       size: 24),
-                                  tooltip: "Sync IBM LinuxONE Gateway",
+                                  tooltip: "Sync SOS reports",
                                 ),
                                 if (unsyncedCount > 0)
                                   Positioned(
@@ -2503,8 +2512,8 @@ class _ModernMeshHomeState extends State<ModernMeshHome> {
                                                         ),
                                                         child: Text(
                                                           msg.isGatewaySynced
-                                                              ? "☁️ LinuxONE Ingested"
-                                                              : "⏳ Stored in RAM Buffer",
+                                                              ? "Sent for triage"
+                                                              : "Waiting to sync",
                                                           style: TextStyle(
                                                             color: msg.isGatewaySynced
                                                                 ? const Color(
