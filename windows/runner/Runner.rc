@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "relay_mesh_app" "\0"
+            VALUE "CompanyName", "FieldLink" "\0"
+            VALUE "FileDescription", "FieldLink" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "relay_mesh_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "relay_mesh_app.exe" "\0"
-            VALUE "ProductName", "relay_mesh_app" "\0"
+            VALUE "InternalName", "fieldlink" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 FieldLink. All rights reserved." "\0"
+            VALUE "OriginalFilename", "fieldlink.exe" "\0"
+            VALUE "ProductName", "FieldLink" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

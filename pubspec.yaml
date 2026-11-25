@@ -1,5 +1,5 @@
-name: no_internet_ibm_datathon
-description: "NoInternet - Offline P2P Mesh & Emergency AI Triage on IBM LinuxONE"
+name: fieldlink
+description: "Offline-first messaging for teams in low-connectivity areas."
 publish_to: 'none'
 
 version: 1.0.0+1

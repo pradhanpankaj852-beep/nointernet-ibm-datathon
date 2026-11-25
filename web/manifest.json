@@ -1,11 +1,11 @@
 {
-    "name": "relay_mesh_app",
-    "short_name": "relay_mesh_app",
+    "name": "FieldLink",
+    "short_name": "FieldLink",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0F172A",
+    "theme_color": "#0F172A",
+    "description": "Offline-first messaging for teams in low-connectivity areas.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

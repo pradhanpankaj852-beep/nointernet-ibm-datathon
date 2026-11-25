@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.no_internet_ibm_datathon"
+    namespace = "com.example.fieldlink"
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.no_internet_ibm_datathon"
+        applicationId = "com.example.fieldlink"
         minSdk = 24
         targetSdk = 35
         versionCode = flutter.versionCode

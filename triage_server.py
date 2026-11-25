@@ -1,22 +1,16 @@
 import platform
 import os
-import psutil
 from typing import Optional, Union, List, Dict, Any
-import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 import uvicorn
 
-# 1. Architecture Verification (for judge proof)
-print(f"Running on Architecture: {platform.machine()}")
-print(f"System: {platform.uname()}")
-
-# 2. Synthetic Disaster Training Data (Crisis Categories & Priority Levels)
+# Example data used to initialize the lightweight triage model.
 training_data = [
     ("Trapped under collapsed concrete, 2 people bleeding heavily, need immediate rescue", "Entrapment", 1),
     ("Severe head trauma, unconscious breathing shallowly, send medics", "Medical", 1),
@@ -31,25 +25,24 @@ training_data = [
 
 df = pd.DataFrame(training_data, columns=['text', 'category', 'urgency'])
 
-# 3. Train Pipeline for Urgency Classification
+# Train a classifier for report urgency.
 urgency_clf = Pipeline([
     ('tfidf', TfidfVectorizer(ngram_range=(1, 2))),
     ('clf', LogisticRegression(max_iter=1000))
 ])
 urgency_clf.fit(df['text'], df['urgency'])
 
-# 4. Train Pipeline for Category Detection
+# Train a classifier for report category.
 cat_clf = Pipeline([
     ('tfidf', TfidfVectorizer(ngram_range=(1, 2))),
     ('clf', LogisticRegression(max_iter=1000))
 ])
 cat_clf.fit(df['text'], df['category'])
 
-# 5. FastAPI Real-Time Ingress Endpoint
 app = FastAPI(
-    title="NoInternet LinuxONE Triage Engine",
-    description="Emergency Disaster Mesh AI Triage System accelerated on IBM Z s390x mainframe architecture",
-    version="2026.1.0"
+    title="FieldLink Triage Service",
+    description="Classifies SOS reports by category and urgency.",
+    version="1.0.0"
 )
 
 # Enable CORS for browser access from local development workstations
@@ -75,7 +68,7 @@ dispatch_queue = []
 @app.get("/")
 def root():
     return {
-        "message": "IBM LinuxONE s390x Disaster Triage Engine Active",
+        "message": "FieldLink triage service is running",
         "architecture": platform.machine(),
         "system": platform.system(),
         "release": platform.release(),
@@ -85,32 +78,21 @@ def root():
 
 @app.get("/api/system/info")
 def system_info():
-    """Real-time system diagnostics telemetry for judge inspection."""
+    """Return service status and current queue counts."""
     p1 = sum(1 for item in dispatch_queue if item.get('priority_level') == 1)
     p2 = sum(1 for item in dispatch_queue if item.get('priority_level') == 2)
     p3 = sum(1 for item in dispatch_queue if item.get('priority_level') in (3, 4, 5))
     
-    try:
-        mem_mb = int(psutil.virtual_memory().total / (1024 * 1024))
-    except Exception:
-        mem_mb = 8018
-
     return {
-        "ibm_z_datathon": "IBM Z Datathon 2026 - NoInternet Field Mesh",
         "platform_machine": platform.machine(),
-        "is_s390x_native": platform.machine().lower().startswith("s390"),
         "system_os": platform.system(),
         "os_release": platform.release(),
         "python_version": platform.python_version(),
-        "node_name": platform.node(),
-        "cpu_cores": os.cpu_count() or 3,
-        "mem_total_mb": mem_mb,
         "active_queue_len": len(dispatch_queue),
         "total_ingested": len(dispatch_queue),
         "p1_critical_count": p1,
         "p2_severe_count": p2,
-        "p3_general_count": p3,
-        "avg_inference_latency_ms": 1.45
+        "p3_general_count": p3
     }
 
 @app.post("/api/triage/stream")
@@ -118,7 +100,7 @@ async def process_sos(payload: Union[SOSPayload, List[SOSPayload], Dict[str, Any
     """
     Ingests SOS distress reports, performs real-time NLP classification,
     and sorts the emergency dispatch queue by urgency.
-    Supports both individual payloads and batched sync from NoInternet mobile nodes.
+    Supports individual reports and batched sync from FieldLink clients.
     """
     items = []
     if isinstance(payload, list):
@@ -153,7 +135,7 @@ async def process_sos(payload: Union[SOSPayload, List[SOSPayload], Dict[str, Any
             "priority_level": predicted_urgency,
             "lat": lat,
             "lng": lng,
-            "processed_by": f"IBM LinuxONE s390x ({platform.machine()})"
+            "processed_by": "FieldLink Triage Service"
         }
 
         dispatch_queue.append(triage_record)
@@ -172,5 +154,5 @@ def get_queue():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting NoInternet Triage Engine on 0.0.0.0:{port}...")
+    print(f"Starting FieldLink Triage Service on 0.0.0.0:{port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)

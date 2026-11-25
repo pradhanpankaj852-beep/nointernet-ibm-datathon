@@ -1,4 +1,4 @@
-package com.example.no_internet_ibm_datathon
+package com.example.fieldlink
 
 import io.flutter.embedding.android.FlutterActivity
 
